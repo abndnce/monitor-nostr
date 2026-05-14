@@ -1,14 +1,14 @@
-Relay                                    l… c… z… s… g… s… q… g… l… l… d… b… i… c… d… g… f… p… b… s… m… a… b…
-─────────────────────────────────────────────────────────────────────────────────────────────────────────────
-wss://nostr.data.haus                    ## XX XX ## XX ## XX XX ## ## XX ## ## XX XX XX XX XX XX ## XX XX ##
-wss://relay.camelus.app                  XX XX XX [] XX [] XX XX [] [] XX [] [] XX XX XX XX XX XX [] ## XX []
-wss://relay.angor.io                     [] XX XX [] XX XX XX XX [] [] XX [] [] XX XX XX XX XX XX [] [] XX []
-wss://relay2.angor.io                    [] XX XX [] XX XX XX XX [] [] XX [] [] XX XX XX XX XX XX [] [] XX []
-wss://nostr.thalheim.io                  [] XX XX [] XX [] XX XX [] [] XX XX [] XX XX XX XX XX XX [] [] XX []
-wss://articles.layer3.news               XX XX XX [] XX [] XX XX [] [] XX [] [] XX XX XX XX XX XX [] [] XX []
-wss://relay-testnet.k8s.layer3.news      XX XX XX [] XX [] XX XX [] [] XX [] [] XX XX XX XX XX XX [] [] XX []
-wss://strfry.bonsai.com                  [] XX XX [] XX XX XX XX [] [] XX [] [] XX XX XX XX XX XX [] [] XX []
-wss://relay.staging.commonshub.brussels  [] XX XX [] XX XX XX XX [] [] XX [] [] XX XX XX XX XX XX [] [] XX []
-wss://relay.satlantis.io                 [] XX XX [] XX [] XX XX [] [] XX [] [] XX XX XX XX XX XX [] [] XX XX
+Relay                                    ligciszscsopgoglinsenquslangogblodnsdeliboblogagforconpalbarmidsecari
+                                       ───────────────────────────────────────────────────────────────────────
+wss://nostr.data.haus                    🟩 ⬛ ⬛ 🟩 ⬛ 🟩 🟩 ⬛ 🟩 ⬛ 🟩 ⬛ ⬛ 🟩 🟩 ⬛ ⬛ ⬛ ⬛ ⬛ ⬛ 🟩 ⬛ 
+wss://relay.camelus.app                  ⬛ ⬛ ⬛ ⬜ ⬛ ⬜ ⬜ ⬛ ⬜ ⬛ ⬜ ⬛ ⬛ ⬜ ⬜ ⬛ ⬛ ⬛ ⬛ ⬛ 🟩 ⬜ ⬛ 
+wss://relay.angor.io                     ⬜ ⬛ ⬛ ⬜ ⬛ ⬜ ⬛ ⬛ ⬜ ⬛ ⬜ ⬛ ⬛ ⬜ ⬜ ⬛ ⬛ ⬛ ⬛ ⬛ ⬜ ⬜ ⬛ 
+wss://relay2.angor.io                    ⬜ ⬛ ⬛ ⬜ ⬛ ⬜ ⬛ ⬛ ⬜ ⬛ ⬜ ⬛ ⬛ ⬜ ⬜ ⬛ ⬛ ⬛ ⬛ ⬛ ⬜ ⬜ ⬛ 
+wss://nostr.thalheim.io                  ⬜ ⬛ ⬛ ⬜ ⬛ ⬜ ⬜ ⬛ ⬜ ⬛ ⬛ ⬛ ⬛ ⬜ ⬜ ⬛ ⬛ ⬛ ⬛ ⬛ ⬜ ⬜ ⬛ 
+wss://articles.layer3.news               ⬛ ⬛ ⬛ ⬜ ⬛ ⬜ ⬜ ⬛ ⬜ ⬛ ⬜ ⬛ ⬛ ⬜ ⬜ ⬛ ⬛ ⬛ ⬛ ⬛ ⬜ ⬜ ⬛ 
+wss://relay-testnet.k8s.layer3.news      ⬛ ⬛ ⬛ ⬜ ⬛ ⬜ ⬜ ⬛ ⬜ ⬛ ⬜ ⬛ ⬛ ⬜ ⬜ ⬛ ⬛ ⬛ ⬛ ⬛ ⬜ ⬜ ⬛ 
+wss://strfry.bonsai.com                  ⬜ ⬛ ⬛ ⬜ ⬛ ⬜ ⬛ ⬛ ⬜ ⬛ ⬜ ⬛ ⬛ ⬜ ⬜ ⬛ ⬛ ⬛ ⬛ ⬛ ⬜ ⬜ ⬛ 
+wss://relay.staging.commonshub.brussels  ⬜ ⬛ ⬛ ⬜ ⬛ ⬜ ⬛ ⬛ ⬜ ⬛ ⬜ ⬛ ⬛ ⬜ ⬜ ⬛ ⬛ ⬛ ⬛ ⬛ ⬜ ⬜ ⬛ 
+wss://relay.satlantis.io                 ⬜ ⬛ ⬛ ⬜ ⬛ ⬜ ⬜ ⬛ ⬜ ⬛ ⬜ ⬛ ⬛ ⬜ ⬛ ⬛ ⬛ ⬛ ⬛ ⬛ ⬜ ⬜ ⬛ 
 
-## first unblocked  [] unblocked  XX blocked/error
+🟩 first unblocked    ⬜ unblocked    ⬛ blocked/error
