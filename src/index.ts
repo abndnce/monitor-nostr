@@ -104,7 +104,7 @@ function assignSymbols(names: string[]): Map<string, string> {
 function grid(relays: { short: string; filters: Map<string, string>; score: number }[]) {
   const order = new Map<string, number>();
   for (const r of relays) for (const k of r.filters.keys()) if (!order.has(k)) order.set(k, order.size);
-  const names = [...order.keys()];
+  const names = [...order.keys()].sort();
 
   const cols = assignSymbols(names);           // filterName → display symbol
   const syms = names.map(n => cols.get(n)!);   // ordered symbols
@@ -141,7 +141,7 @@ function rankTop(relays: { url: string; short: string; filters: Map<string, stri
   // All unique filter names across all relays
   const allFilters = new Set<string>();
   for (const r of relays) for (const k of r.filters.keys()) allFilters.add(k);
-  const filterNames = [...allFilters];
+  const filterNames = [...allFilters].sort();
 
   const sorted: typeof relays = [];
   const remaining = [...relays];
