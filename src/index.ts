@@ -185,15 +185,8 @@ function rankTop(relays: { url: string; short: string; filters: Map<string, stri
 
 console.log(`Checking ${RELAYS.length} relays...\n`);
 
-const settled = await Promise.allSettled(RELAYS.map(url => check(url)));
-
 const results: { url: string; short: string; filters: Map<string, string>; score: number }[] = [];
-for (let i = 0; i < settled.length; i++) {
-  const r = settled[i];
-  if (r.status === "fulfilled") results.push(r.value);
-  else console.error(`  ✗ ${RELAYS[i]}  — ${r.reason}`);
-}
-if (results.length === 0) throw new Error("all relay checks failed");
+for (const url of RELAYS) results.push(await check(url));
 
 const top = rankTop(results, TOP_N);
 
