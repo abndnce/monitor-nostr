@@ -61,15 +61,53 @@ function dwPad(s: string, target: number) {
   return n > 0 ? s + " ".repeat(n) : s;
 }
 
-const GREEN = "🟩"; // first unblocked in column
-const WHITE = "⬜"; // unblocked
-const BLACK = "⬛"; // blocked / error
+const GREEN = "🟩";
+const WHITE = "⬜";
+const BLACK = "⬛";
 
-/** Build the grid lines (no filter-name header, just single letters). */
+// ─── Column-symbol assignment ────────────────────────────────────────────
+// Try first-letter uppercase; fall back to a number, then to any remaining
+// uppercase letter, then to any remaining lowercase letter.
+
+function assignSymbols(names: string[]): Map<string, string> {
+  const sym = new Map<string, string>();   // filterName → symbol string
+  const used = new Set<string>();
+
+  const pool: string[] = [];
+  // numbers
+  for (let i = 0; i <= 9; i++) pool.push(String(i));
+  // remaining uppercase A-Z
+  for (let i = 0; i < 26; i++) pool.push(String.fromCharCode(65 + i));
+  // lowercase as last resort
+  for (let i = 0; i < 26; i++) pool.push(String.fromCharCode(97 + i));
+
+  let pi = 0; // pool index
+
+  for (const name of names) {
+    const pref = name[0].toUpperCase();
+    if (!used.has(pref)) {
+      sym.set(name, pref);
+      used.add(pref);
+      continue;
+    }
+    // fallback: next unused from pool
+    while (pi < pool.length && used.has(pool[pi])) pi++;
+    if (pi < pool.length) {
+      sym.set(name, pool[pi]);
+      used.add(pool[pi]);
+      pi++;
+    }
+  }
+  return sym;
+}
+
 function grid(relays: { short: string; filters: Map<string, string>; score: number }[]) {
   const order = new Map<string, number>();
   for (const r of relays) for (const k of r.filters.keys()) if (!order.has(k)) order.set(k, order.size);
   const names = [...order.keys()];
+
+  const cols = assignSymbols(names);           // filterName → display symbol
+  const syms = names.map(n => cols.get(n)!);   // ordered symbols
 
   const rows = relays.map(r => names.map(n => r.filters.get(n) ?? "blocked"));
 
@@ -80,12 +118,13 @@ function grid(relays: { short: string; filters: Map<string, string>; score: numb
 
   const nameW = Math.max(...relays.map(r => dw(r.short)), dw("Relay"));
 
-  // Each column = 3 display columns: letter(1) + 2 spaces, or emoji(2) + 1 space
-  const colH = (i: number) => dwPad(String.fromCharCode(65 + i), 3); // A, B, C…
+  // Each data cell = emoji(2) + space(1) = 3 dw.
+  // Header cell = symbol(1) + 2 spaces = 3 dw.
+  const colH = (i: number) => dwPad(syms[i], 3);
   const colD = (c: number, r: number) => {
     const g = first.get(c) === r && rows[r][c] === "unblocked";
     const sq = g && rows[r][c] === "unblocked" ? GREEN : rows[r][c] === "unblocked" ? WHITE : BLACK;
-    return sq + " "; // emoji(2) + space(1) = 3 dw
+    return sq + " ";
   };
   const pad = (n: string, cells: string[]) => dwPad(n, nameW) + "  " + cells.join("");
 
@@ -93,7 +132,7 @@ function grid(relays: { short: string; filters: Map<string, string>; score: numb
   for (let r = 0; r < relays.length; r++)
     lines.push(pad(relays[r].short, names.map((_, c) => colD(c, r))));
 
-  return lines.join("\n");
+  return { lines: lines.join("\n"), syms: names.map((n, i) => `${syms[i]}: ${n}`) };
 }
 
 // ─── Main ────────────────────────────────────────────────────────────────────
@@ -116,15 +155,15 @@ const top = results.slice(0, TOP_N);
 console.log(`\nTop ${top.length} (of ${results.length} successful):`);
 for (const r of top) console.log(`  ${r.url}  (${r.score})`);
 
-const g = grid(top);
+const { lines: g, syms } = grid(top);
 console.log("\n" + g);
 
 // compare (store full URLs for fidelity)
-const fullGrid = grid(top.map(r => ({ ...r, short: r.url })));
+const prevLines = grid(top.map(r => ({ ...r, short: r.url }))).lines;
 const prev = existsSync(RESULTS) ? readFileSync(RESULTS, "utf-8") : null;
-if (prev === fullGrid) { console.log("\nNo change."); process.exit(0); }
+if (prev === prevLines) { console.log("\nNo change."); process.exit(0); }
 
-writeFileSync(RESULTS, fullGrid, "utf-8");
+writeFileSync(RESULTS, prevLines, "utf-8");
 console.log(`\nSaved ${RESULTS}`);
 
 // git (in CI)
@@ -141,16 +180,8 @@ if (process.env.CI === "true") {
 
 // discord
 if (WEBHOOK) {
-  // build letter→filter legend
-  const order = new Map<string, number>();
-  for (const r of top) for (const k of r.filters.keys()) if (!order.has(k)) order.set(k, order.size);
-  const names = [...order.keys()];
-  const legend = names.map((n, i) => `${String.fromCharCode(65 + i)}: ${n}`).join("  ");
-
+  const legend = syms.join("  ");
   const msg = [
-    "**Nostr Relay Filter Monitor**",
-    `Top ${top.length} of ${results.length} relays`,
-    "",
     "```",
     g,
     "```",
@@ -159,7 +190,6 @@ if (WEBHOOK) {
     legend,
   ].join("\n");
 
-  // emergency trim if needed
   const payload = msg.length > 2000 ? msg.slice(0, 1997) + "…" : msg;
   const res = await fetch(WEBHOOK, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: payload }) });
   if (!res.ok) console.error(`Discord: ${res.status} ${await res.text()}`);
