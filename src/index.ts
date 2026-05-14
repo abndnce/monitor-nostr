@@ -50,6 +50,23 @@ async function check(url: string) {
   return { url, short: shortUrl(url), filters, score };
 }
 
+// display width: emoji squares count as 2, ascii as 1
+function dw(s: string) {
+  let w = 0;
+  for (const ch of s) w += (ch === "🟩" || ch === "⬜" || ch === "⬛") ? 2 : 1;
+  return w;
+}
+function dwPad(s: string, target: number) {
+  const n = target - dw(s);
+  return n > 0 ? s + " ".repeat(n) : s;
+}
+
+const COL_W = 3; // display columns per filter column
+
+const GREEN = "🟩"; // first unblocked in column
+const WHITE = "⬜"; // unblocked
+const BLACK = "⬛"; // blocked / error
+
 function grid(relays: { short: string; filters: Map<string, string>; score: number }[]) {
   // ordered filter names
   const order = new Map<string, number>();
@@ -65,25 +82,26 @@ function grid(relays: { short: string; filters: Map<string, string>; score: numb
     for (let r = 0; r < relays.length; r++)
       if (rows[r][c] === "unblocked") { first.set(c, r); break; }
 
-  const nameW = Math.max(...relays.map(r => r.short.length), "Relay".length);
-  const COL_W = 2; // "##" = 2 chars, no trailing space
-  const short = (s: string) => s.length <= COL_W ? s.padEnd(COL_W) : s.slice(0, COL_W - 1) + "…";
-  const pad = (n: string, cells: string[]) => n.padEnd(nameW) + "  " + cells.join(" "); // space between cells
+  const nameW = Math.max(...relays.map(r => dw(r.short)), dw("Relay"));
+  const short = (s: string) => dwPad(s.slice(0, COL_W), COL_W);
+  const pad = (n: string, cells: string[]) => dwPad(n, nameW) + "  " + cells.join("");
 
   const lines = [pad("Relay", names.map(short))];
-  lines.push("".padEnd(nameW, "─") + "──" + names.map(() => "".padEnd(COL_W, "─")).join("─"));
+  // separator: each column = COL_W dashes
+  lines.push(dwPad("", nameW) + "──" + names.map(() => "".padEnd(COL_W, "─")).join(""));
 
   for (let r = 0; r < relays.length; r++) {
     const cells = names.map((_, c) => {
       const g = first.get(c) === r && rows[r][c] === "unblocked";
-      if (g && rows[r][c] === "unblocked") return "##";
-      if (rows[r][c] === "unblocked")       return "[]";
-      return "XX";
+      // emoji square (2 dw) + 1 trailing space = 3 dw
+      if (g && rows[r][c] === "unblocked") return GREEN + " ";
+      if (rows[r][c] === "unblocked")       return WHITE + " ";
+      return BLACK + " ";
     });
     lines.push(pad(relays[r].short, cells));
   }
 
-  lines.push("", "## first unblocked  [] unblocked  XX blocked/error");
+  lines.push("", `${GREEN} first unblocked    ${WHITE} unblocked    ${BLACK} blocked/error`);
   return lines.join("\n");
 }
 
