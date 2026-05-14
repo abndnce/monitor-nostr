@@ -1,0 +1,7 @@
+{
+  "name": "monitor-nostr",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Monitors Nostr relays against web filters to find the most unfiltered relays"
+}

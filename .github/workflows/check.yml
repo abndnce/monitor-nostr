@@ -1,0 +1,32 @@
+name: Nostr Relay Check
+
+on:
+  schedule:
+    # Run daily at 06:00 UTC
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+    # Allow manual trigger from the GitHub UI
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    # Grant write permissions so the script can push results back
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 26
+        uses: actions/setup-node@v4
+        with:
+          node-version: 26
+
+      - name: Run relay monitor
+        run: node src/index.ts
+        env:
+          NOSTR_RELAYS: ${{ secrets.NOSTR_RELAYS }}
+          FILTER_API_URL: ${{ secrets.FILTER_API_URL }}
+          FILTER_API_KEY: ${{ secrets.FILTER_API_KEY }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
