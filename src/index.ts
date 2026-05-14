@@ -61,47 +61,38 @@ function dwPad(s: string, target: number) {
   return n > 0 ? s + " ".repeat(n) : s;
 }
 
-const COL_W = 3; // display columns per filter column
-
 const GREEN = "🟩"; // first unblocked in column
 const WHITE = "⬜"; // unblocked
 const BLACK = "⬛"; // blocked / error
 
+/** Build the grid lines (no filter-name header, just single letters). */
 function grid(relays: { short: string; filters: Map<string, string>; score: number }[]) {
-  // ordered filter names
   const order = new Map<string, number>();
   for (const r of relays) for (const k of r.filters.keys()) if (!order.has(k)) order.set(k, order.size);
   const names = [...order.keys()];
 
-  // status matrix
   const rows = relays.map(r => names.map(n => r.filters.get(n) ?? "blocked"));
 
-  // first unblocked per column
   const first = new Map<number, number>();
   for (let c = 0; c < names.length; c++)
     for (let r = 0; r < relays.length; r++)
       if (rows[r][c] === "unblocked") { first.set(c, r); break; }
 
   const nameW = Math.max(...relays.map(r => dw(r.short)), dw("Relay"));
-  const short = (s: string) => dwPad(s.slice(0, COL_W), COL_W);
+
+  // Each column = 3 display columns: letter(1) + 2 spaces, or emoji(2) + 1 space
+  const colH = (i: number) => dwPad(String.fromCharCode(65 + i), 3); // A, B, C…
+  const colD = (c: number, r: number) => {
+    const g = first.get(c) === r && rows[r][c] === "unblocked";
+    const sq = g && rows[r][c] === "unblocked" ? GREEN : rows[r][c] === "unblocked" ? WHITE : BLACK;
+    return sq + " "; // emoji(2) + space(1) = 3 dw
+  };
   const pad = (n: string, cells: string[]) => dwPad(n, nameW) + "  " + cells.join("");
 
-  const lines = [pad("Relay", names.map(short))];
-  // separator: each column = COL_W dashes
-  lines.push(dwPad("", nameW) + "──" + names.map(() => "".padEnd(COL_W, "─")).join(""));
+  const lines = [pad("Relay", names.map((_, i) => colH(i)))];
+  for (let r = 0; r < relays.length; r++)
+    lines.push(pad(relays[r].short, names.map((_, c) => colD(c, r))));
 
-  for (let r = 0; r < relays.length; r++) {
-    const cells = names.map((_, c) => {
-      const g = first.get(c) === r && rows[r][c] === "unblocked";
-      // emoji square (2 dw) + 1 trailing space = 3 dw
-      if (g && rows[r][c] === "unblocked") return GREEN + " ";
-      if (rows[r][c] === "unblocked")       return WHITE + " ";
-      return BLACK + " ";
-    });
-    lines.push(pad(relays[r].short, cells));
-  }
-
-  lines.push("", `${GREEN} first unblocked    ${WHITE} unblocked    ${BLACK} blocked/error`);
   return lines.join("\n");
 }
 
@@ -148,27 +139,29 @@ if (process.env.CI === "true") {
   }
 }
 
-// discord — grid inside a code block
+// discord
 if (WEBHOOK) {
+  // build letter→filter legend
+  const order = new Map<string, number>();
+  for (const r of top) for (const k of r.filters.keys()) if (!order.has(k)) order.set(k, order.size);
+  const names = [...order.keys()];
+  const legend = names.map((n, i) => `${String.fromCharCode(65 + i)}: ${n}`).join("  ");
+
   const msg = [
     "**Nostr Relay Filter Monitor**",
-    `Top ${top.length} of ${results.length} relays:`,
+    `Top ${top.length} of ${results.length} relays`,
     "",
     "```",
     g,
     "```",
+    `${GREEN} first unblocked   ${WHITE} unblocked   ${BLACK} blocked/error`,
+    "",
+    legend,
   ].join("\n");
 
-  if (msg.length > 2000) {
-    // emergency trim: drop legend, keep only grid
-    const trimmed = ["> **Nostr Relay Filter Monitor**", "", "```", g.split("\n").slice(0, -3).join("\n"), "```"].join("\n");
-    const payload = trimmed.slice(0, 1997) + "…";
-    const res = await fetch(WEBHOOK, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: payload }) });
-    if (!res.ok) console.error(`Discord: ${res.status}`);
-    else console.log("Discord sent (trimmed).");
-  } else {
-    const res = await fetch(WEBHOOK, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: msg }) });
-    if (!res.ok) console.error(`Discord: ${res.status}`);
-    else console.log("Discord sent.");
-  }
+  // emergency trim if needed
+  const payload = msg.length > 2000 ? msg.slice(0, 1997) + "…" : msg;
+  const res = await fetch(WEBHOOK, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: payload }) });
+  if (!res.ok) console.error(`Discord: ${res.status} ${await res.text()}`);
+  else console.log("Discord sent.");
 }
