@@ -135,6 +135,52 @@ function grid(relays: { short: string; filters: Map<string, string>; score: numb
   return { lines: lines.join("\n"), syms: names.map((n, i) => `${syms[i]}: ${n}`) };
 }
 
+// ─── Ranking: first-unblocked coverage, then absolute score ──────────────
+
+function rankTop(relays: { url: string; short: string; filters: Map<string, string>; score: number }[], n: number) {
+  // All unique filter names across all relays
+  const allFilters = new Set<string>();
+  for (const r of relays) for (const k of r.filters.keys()) allFilters.add(k);
+  const filterNames = [...allFilters];
+
+  const sorted: typeof relays = [];
+  const remaining = [...relays];
+  const claimed = new Set<string>(); // filters that already have a first unblocked
+
+  while (sorted.length < n && remaining.length > 0) {
+    let bestIdx = -1, bestNew = -1, bestScore = -1;
+
+    for (let i = 0; i < remaining.length; i++) {
+      const r = remaining[i];
+      let newCount = 0;
+      for (const f of filterNames) {
+        if (!claimed.has(f) && r.filters.get(f) === "unblocked") newCount++;
+      }
+      if (newCount > bestNew || (newCount === bestNew && r.score > bestScore)) {
+        bestNew = newCount;
+        bestIdx = i;
+        bestScore = r.score;
+      }
+    }
+
+    if (bestIdx === -1) break;
+    const picked = remaining.splice(bestIdx, 1)[0];
+
+    // Mark filters this relay unblocked as claimed
+    for (const f of filterNames) {
+      if (!claimed.has(f) && picked.filters.get(f) === "unblocked") claimed.add(f);
+    }
+
+    sorted.push(picked);
+  }
+
+  // Fill remaining slots by absolute score
+  remaining.sort((a, b) => b.score - a.score);
+  while (sorted.length < n && remaining.length > 0) sorted.push(remaining.shift()!);
+
+  return sorted;
+}
+
 // ─── Main ────────────────────────────────────────────────────────────────────
 
 console.log(`Checking ${RELAYS.length} relays...\n`);
@@ -149,8 +195,7 @@ for (let i = 0; i < settled.length; i++) {
 }
 if (results.length === 0) throw new Error("all relay checks failed");
 
-results.sort((a, b) => b.score - a.score);
-const top = results.slice(0, TOP_N);
+const top = rankTop(results, TOP_N);
 
 console.log(`\nTop ${top.length} (of ${results.length} successful):`);
 for (const r of top) console.log(`  ${r.url}  (${r.score})`);
