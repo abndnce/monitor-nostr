@@ -1,15 +1,15 @@
-Relay                                    li…zs…go…ci…so…li…qu…go…de…ba…ga…se…la…dn…fo…ib…bl…co…pa…bl…ar…se…mi…
+Relay                                    li…co…ci…li…zs…so…de…pa…ba…ib…fo…go…ga…qu…dn…se…go…ar…bl…bl…la…se…mi…
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────
-wss://nostr.data.haus                    ## XX XX XX ## ## XX XX XX XX XX ## ## XX XX ## ## XX XX ## XX ## XX 
-wss://relay.camelus.app                  XX XX XX XX [] [] XX XX XX XX XX [] [] XX XX [] [] XX XX [] XX [] ## 
-wss://relay.angor.io                     [] XX XX XX [] [] XX XX XX XX XX XX [] XX XX [] [] XX XX [] XX [] [] 
-wss://relay2.angor.io                    [] XX XX XX [] [] XX XX XX XX XX XX [] XX XX [] [] XX XX [] XX [] [] 
-wss://nostr.thalheim.io                  [] XX XX XX [] [] XX XX XX XX XX [] [] XX XX [] XX XX XX [] XX [] [] 
-wss://articles.layer3.news               XX XX XX XX [] [] XX XX XX XX XX [] [] XX XX [] [] XX XX [] XX [] [] 
-wss://relay-testnet.k8s.layer3.news      XX XX XX XX [] [] XX XX XX XX XX [] [] XX XX [] [] XX XX [] XX [] [] 
-wss://strfry.bonsai.com                  [] XX XX XX [] [] XX XX XX XX XX XX [] XX XX [] [] XX XX [] XX [] [] 
-wss://relay.staging.commonshub.brussels  [] XX XX XX [] [] XX XX XX XX XX XX [] XX XX [] [] XX XX [] XX [] [] 
-wss://relay.satlantis.io                 [] XX XX XX [] [] XX XX XX XX XX [] [] XX XX [] [] XX XX XX XX [] [] 
+wss://nostr.data.haus                    ## XX XX ## XX ## XX XX XX ## XX XX XX XX XX ## XX XX ## ## ## ## XX 
+wss://relay.camelus.app                  XX XX XX [] XX [] XX XX XX [] XX XX XX XX XX [] XX XX [] [] [] [] ## 
+wss://relay.angor.io                     [] XX XX [] XX [] XX XX XX [] XX XX XX XX XX XX XX XX [] [] [] [] [] 
+wss://relay2.angor.io                    [] XX XX [] XX [] XX XX XX [] XX XX XX XX XX XX XX XX [] [] [] [] [] 
+wss://nostr.thalheim.io                  [] XX XX [] XX [] XX XX XX [] XX XX XX XX XX [] XX XX XX [] [] [] [] 
+wss://articles.layer3.news               XX XX XX [] XX [] XX XX XX [] XX XX XX XX XX [] XX XX [] [] [] [] [] 
+wss://relay-testnet.k8s.layer3.news      XX XX XX [] XX [] XX XX XX [] XX XX XX XX XX [] XX XX [] [] [] [] [] 
+wss://strfry.bonsai.com                  [] XX XX [] XX [] XX XX XX [] XX XX XX XX XX XX XX XX [] [] [] [] [] 
+wss://relay.staging.commonshub.brussels  [] XX XX [] XX [] XX XX XX [] XX XX XX XX XX XX XX XX [] [] [] [] [] 
+wss://relay.satlantis.io                 [] XX XX [] XX [] XX XX XX [] XX XX XX XX XX [] XX XX [] XX [] [] [] 
 
 ## first unblocked
 [] unblocked
