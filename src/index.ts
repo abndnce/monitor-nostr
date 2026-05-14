@@ -155,12 +155,24 @@ function render(
 
 console.log(`Checking ${RELAYS.length} relays...\n`);
 
-// Let it crash if anything fails — fail loud
-const results = await Promise.all(RELAYS.map((url) => check(url)));
+const settled = await Promise.allSettled(RELAYS.map((url) => check(url)));
+
+const results: { url: string; filters: Map<string, string>; score: number }[] = [];
+for (let i = 0; i < settled.length; i++) {
+  const r = settled[i];
+  if (r.status === "fulfilled") {
+    results.push(r.value);
+  } else {
+    console.error(`  ✗ ${RELAYS[i]}  — ${r.reason}`);
+  }
+}
+
+if (results.length === 0) throw new Error("all relay checks failed");
 
 results.sort((a, b) => b.score - a.score);
 const top = results.slice(0, TOP_N);
 
+console.log(`\nTop ${top.length} (of ${results.length} successful):`);
 for (const r of top) console.log(`  ${r.url}  (${r.score})`);
 
 const { plain, ansi } = render(top);
