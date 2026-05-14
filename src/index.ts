@@ -206,15 +206,15 @@ if (process.env.CI === "true") {
   }
 }
 
-// discord
+// discord — send grid as a file to avoid the 2000-char content limit
 if (WEBHOOK) {
-  const msg = ["```ansi", ansi, "```"].join("\n");
+  const summary = top.map((r, i) => `${i + 1}. ${r.url}  (${r.score}/${r.filters.size})`).join("\n");
 
-  const res = await fetch(WEBHOOK, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ content: msg }),
-  });
+  const form = new FormData();
+  form.append("content", `**Nostr Relay Filter Monitor**\n${top.length} of ${results.length} relays shown\n\n${summary}`);
+  form.append("file", new Blob([ansi], { type: "text/plain" }), "grid.ansi.txt");
+
+  const res = await fetch(WEBHOOK, { method: "POST", body: form });
   if (!res.ok) console.error(`Discord: ${res.status} ${await res.text()}`);
   else console.log("Discord sent.");
 }
