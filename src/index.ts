@@ -3,12 +3,15 @@ import { execSync } from "node:child_process";
 
 // ─── Env ────────────────────────────────────────────────────────────────────
 
-const RELAYS  = (process.env.NOSTR_RELAYS ?? "").split("\n").map(s => s.trim()).filter(Boolean);
+const RELAYS = (process.env.NOSTR_RELAYS ?? "")
+  .split("\n")
+  .map((s) => s.trim())
+  .filter(Boolean);
 const API_URL = process.env.FILTER_API_URL!;
 const API_KEY = process.env.FILTER_API_KEY!;
 const WEBHOOK = process.env.DISCORD_WEBHOOK_URL;
 const RESULTS = "latest.txt";
-const TOP_N   = 10;
+const TOP_N = 10;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -19,16 +22,22 @@ function shortUrl(u: string) {
   return s.length <= 30 ? s : s.slice(0, 27) + "…";
 }
 
-function statusFrom(name: string, r: Record<string, unknown>, blocked: string[], unblocked: string[], errors: string[]) {
-  if (blocked.includes(name))   return "blocked";
+function statusFrom(
+  name: string,
+  r: Record<string, unknown>,
+  blocked: string[],
+  unblocked: string[],
+  errors: string[],
+) {
+  if (blocked.includes(name)) return "blocked";
   if (unblocked.includes(name)) return "unblocked";
-  if (errors.includes(name))    return "error";
+  if (errors.includes(name)) return "error";
   if (typeof r.status === "string") {
     if (r.status === "Unblocked" || r.status === "Allowed") return "unblocked";
-    if (r.status === "Blocked")   return "blocked";
+    if (r.status === "Blocked") return "blocked";
     return "error";
   }
-  if (r.status === false)       return "unblocked";
+  if (r.status === false) return "unblocked";
   if (typeof r.block === "boolean") return r.block ? "blocked" : "unblocked";
   return "blocked";
 }
@@ -43,7 +52,13 @@ async function check(url: string) {
   const filters = new Map<string, string>();
   let score = 0;
   for (const [fname, fr] of Object.entries(data.results)) {
-    const s = statusFrom(fname, fr as any, data.blocked, data.unblocked, data.errors);
+    const s = statusFrom(
+      fname,
+      fr as any,
+      data.blocked,
+      data.unblocked,
+      data.errors,
+    );
     filters.set(fname, s);
     if (s === "unblocked") score++;
   }
@@ -53,7 +68,8 @@ async function check(url: string) {
 // display width: emoji squares count as 2, ascii as 1
 function dw(s: string) {
   let w = 0;
-  for (const ch of s) w += (ch === GREEN || ch === WHITE || ch === BLACK || ch === RED) ? 2 : 1;
+  for (const ch of s)
+    w += ch === GREEN || ch === WHITE || ch === BLACK || ch === RED ? 2 : 1;
   return w;
 }
 function dwPad(s: string, target: number) {
@@ -64,14 +80,54 @@ function dwPad(s: string, target: number) {
 const GREEN = "🟩";
 const WHITE = "⬜";
 const BLACK = "⬛";
-const RED   = "🟥";
+const RED = "🟥";
+
+// ─── Market-share weighting ──────────────────────────────────────────────
+// Approximate US K-12 public school enrollment (50 states + DC)
+const TOTAL_US_K12 = 49_600_000;
+
+/** Filter API name → market share (0‑1). Unknown filters get ~0. */
+const MARKET_SHARE: Record<string, number> = {
+  goguardian: 25_000_000 / TOTAL_US_K12,
+  goguardian_ai: 12_700_000 / TOTAL_US_K12,
+  lightspeed: 23_000_000 / TOTAL_US_K12,
+  securly: 15_000_000 / TOTAL_US_K12,
+  gaggle: 5_800_000 / TOTAL_US_K12,
+  blocksi: 3_000_000 / TOTAL_US_K12,
+  "blocksi-ai": 3_000_000 / TOTAL_US_K12,
+  hapara: 2_200_000 / TOTAL_US_K12,
+  linewize: 10_000_000 / TOTAL_US_K12,
+  smoothwall: 4_000_000 / TOTAL_US_K12,
+  lanschool: 6_000_000 / TOTAL_US_K12,
+  "content-keeper": 5_000_000 / TOTAL_US_K12,
+  cisco: 8_000_000 / TOTAL_US_K12,
+  palo: 5_000_000 / TOTAL_US_K12,
+  fortiguard: 4_000_000 / TOTAL_US_K12,
+  zscaler: 3_000_000 / TOTAL_US_K12,
+  iboss: 4_000_000 / TOTAL_US_K12,
+  sensocloud: 2_000_000 / TOTAL_US_K12,
+  dnsfilter: 2_000_000 / TOTAL_US_K12,
+  sophos: 1_000_000 / TOTAL_US_K12,
+  aristotlek12: 2_000_000 / TOTAL_US_K12,
+  qustodio: 1_000_000 / TOTAL_US_K12,
+  cleanbrowsing: 1_000_000 / TOTAL_US_K12,
+  deldao: 500_000 / TOTAL_US_K12,
+  midnightai: 200_000 / TOTAL_US_K12,
+  barracuda: 100_000 / TOTAL_US_K12,
+};
+
+function shareWeight(name: string): number {
+  if (name in MARKET_SHARE) return MARKET_SHARE[name];
+  console.warn("No market share for", name);
+  return 0.001;
+}
 
 // ─── Column-symbol assignment ────────────────────────────────────────────
 // Try first-letter uppercase; fall back to a number, then to any remaining
 // uppercase letter, then to any remaining lowercase letter.
 
 function assignSymbols(names: string[]): Map<string, string> {
-  const sym = new Map<string, string>();   // filterName → symbol string
+  const sym = new Map<string, string>(); // filterName → symbol string
   const used = new Set<string>();
 
   const pool: string[] = [];
@@ -102,39 +158,76 @@ function assignSymbols(names: string[]): Map<string, string> {
   return sym;
 }
 
-function grid(relays: { url: string; short: string; filters: Map<string, string>; score: number }[]) {
+function grid(
+  relays: {
+    url: string;
+    short: string;
+    filters: Map<string, string>;
+    score: number;
+  }[],
+) {
   const order = new Map<string, number>();
-  for (const r of relays) for (const k of r.filters.keys()) if (!order.has(k)) order.set(k, order.size);
-  const names = [...order.keys()].sort();
+  for (const r of relays)
+    for (const k of r.filters.keys())
+      if (!order.has(k)) order.set(k, order.size);
+  const names = [...order.keys()].sort(
+    (a, b) => shareWeight(b) - shareWeight(a) || a.localeCompare(b),
+  );
 
-  const cols = assignSymbols(names);           // filterName → display symbol
-  const syms = names.map(n => cols.get(n)!);   // ordered symbols
+  const cols = assignSymbols(names); // filterName → display symbol
+  const syms = names.map((n) => cols.get(n)!); // ordered symbols
 
-  const rows = relays.map(r => names.map(n => r.filters.get(n) ?? "blocked"));
+  const rows = relays.map((r) =>
+    names.map((n) => r.filters.get(n) ?? "blocked"),
+  );
 
   // First-unblocked: skip test entries so they don't steal green squares
   const first = new Map<number, number>();
   for (let c = 0; c < names.length; c++)
     for (let r = 0; r < relays.length; r++)
-      if (!isTest(relays[r]) && rows[r][c] === "unblocked") { first.set(c, r); break; }
+      if (!isTest(relays[r]) && rows[r][c] === "unblocked") {
+        first.set(c, r);
+        break;
+      }
 
-  const nameW = Math.max(...relays.map(r => dw(r.short)), dw("Relay"));
+  const nameW = Math.max(...relays.map((r) => dw(r.short)), dw("Relay"));
 
   // Each data cell = emoji(2) + space(1) = 3 dw.
   // Header cell = symbol(1) + 2 spaces = 3 dw.
   const colH = (i: number) => dwPad(syms[i], 3);
   const colD = (c: number, r: number) => {
     const g = first.get(c) === r && rows[r][c] === "unblocked";
-    const sq = g && rows[r][c] === "unblocked" ? GREEN : rows[r][c] === "unblocked" ? WHITE : rows[r][c] === "error" ? RED : BLACK;
+    const sq =
+      g && rows[r][c] === "unblocked"
+        ? GREEN
+        : rows[r][c] === "unblocked"
+          ? WHITE
+          : rows[r][c] === "error"
+            ? RED
+            : BLACK;
     return sq + " ";
   };
-  const pad = (n: string, cells: string[]) => dwPad(n, nameW) + "  " + cells.join("");
+  const pad = (n: string, cells: string[]) =>
+    dwPad(n, nameW) + "  " + cells.join("");
 
-  const lines = [pad("Relay", names.map((_, i) => colH(i)))];
+  const lines = [
+    pad(
+      "Relay",
+      names.map((_, i) => colH(i)),
+    ),
+  ];
   for (let r = 0; r < relays.length; r++)
-    lines.push(pad(relays[r].short, names.map((_, c) => colD(c, r))));
+    lines.push(
+      pad(
+        relays[r].short,
+        names.map((_, c) => colD(c, r)),
+      ),
+    );
 
-  return { lines: lines.join("\n"), syms: names.map((n, i) => `${syms[i]}: ${n}`) };
+  return {
+    lines: lines.join("\n"),
+    syms: names.map((n, i) => `${syms[i]}: ${n}`),
+  };
 }
 
 // ─── Test/special-cases ─────────────────────────────────────────────────
@@ -147,22 +240,35 @@ function isTest(relay: { url?: string }) {
 
 // ─── Ranking: first-unblocked coverage, then absolute score ──────────────
 
-function rankTop(relays: { url: string; short: string; filters: Map<string, string>; score: number }[], n: number) {
+function rankTop(
+  relays: {
+    url: string;
+    short: string;
+    filters: Map<string, string>;
+    score: number;
+  }[],
+  n: number,
+) {
   // Separate test entries (they shouldn't influence ranking)
   const testEntries = relays.filter(isTest);
-  const realEntries = relays.filter(r => !isTest(r));
+  const realEntries = relays.filter((r) => !isTest(r));
 
   // All unique filter names across all real relays
   const allFilters = new Set<string>();
-  for (const r of realEntries) for (const k of r.filters.keys()) allFilters.add(k);
-  const filterNames = [...allFilters].sort();
+  for (const r of realEntries)
+    for (const k of r.filters.keys()) allFilters.add(k);
+  const filterNames = [...allFilters].sort(
+    (a, b) => shareWeight(b) - shareWeight(a) || a.localeCompare(b),
+  );
 
   const sorted: typeof relays = [];
   const remaining = [...realEntries];
   const claimed = new Set<string>(); // filters that already have a first unblocked
 
   while (sorted.length < n && remaining.length > 0) {
-    let bestIdx = -1, bestNew = -1, bestScore = -1;
+    let bestIdx = -1,
+      bestNew = -1,
+      bestScore = -1;
 
     for (let i = 0; i < remaining.length; i++) {
       const r = remaining[i];
@@ -182,7 +288,8 @@ function rankTop(relays: { url: string; short: string; filters: Map<string, stri
 
     // Mark filters this relay unblocked as claimed
     for (const f of filterNames) {
-      if (!claimed.has(f) && picked.filters.get(f) === "unblocked") claimed.add(f);
+      if (!claimed.has(f) && picked.filters.get(f) === "unblocked")
+        claimed.add(f);
     }
 
     sorted.push(picked);
@@ -190,7 +297,8 @@ function rankTop(relays: { url: string; short: string; filters: Map<string, stri
 
   // Fill remaining slots by absolute score (from real entries)
   remaining.sort((a, b) => b.score - a.score);
-  while (sorted.length < n && remaining.length > 0) sorted.push(remaining.shift()!);
+  while (sorted.length < n && remaining.length > 0)
+    sorted.push(remaining.shift()!);
 
   // Prepend test entries so they appear first (but don't influence ranking)
   return [...testEntries, ...sorted];
@@ -200,7 +308,12 @@ function rankTop(relays: { url: string; short: string; filters: Map<string, stri
 
 console.log(`Checking ${RELAYS.length} relays...\n`);
 
-const results: { url: string; short: string; filters: Map<string, string>; score: number }[] = [];
+const results: {
+  url: string;
+  short: string;
+  filters: Map<string, string>;
+  score: number;
+}[] = [];
 for (const url of RELAYS) results.push(await check(url));
 
 const top = rankTop(results, TOP_N);
@@ -212,20 +325,29 @@ const { lines: g, syms } = grid(top);
 console.log("\n" + g);
 
 // compare (store full URLs for fidelity)
-const prevLines = grid(top.map(r => ({ ...r, short: r.url }))).lines;
+const prevLines = grid(top.map((r) => ({ ...r, short: r.url }))).lines;
 const prev = existsSync(RESULTS) ? readFileSync(RESULTS, "utf-8") : null;
-if (prev === prevLines) { console.log("\nNo change."); process.exit(0); }
+if (prev === prevLines) {
+  console.log("\nNo change.");
+  process.exit(0);
+}
 
 writeFileSync(RESULTS, prevLines, "utf-8");
 console.log(`\nSaved ${RESULTS}`);
 
 // git (in CI)
 if (process.env.CI === "true") {
-  execSync('git config user.name "bot" && git config user.email "bot@local"', { shell: true });
+  execSync('git config user.name "bot" && git config user.email "bot@local"', {
+    shell: true,
+  });
   execSync(`git add "${RESULTS}"`, { stdio: "inherit" });
-  const dirty = execSync("git status --porcelain", { encoding: "utf-8" }).trim();
+  const dirty = execSync("git status --porcelain", {
+    encoding: "utf-8",
+  }).trim();
   if (dirty) {
-    execSync(`git commit -m "update relay filter status [skip ci]"`, { stdio: "inherit" });
+    execSync(`git commit -m "update relay filter status [skip ci]"`, {
+      stdio: "inherit",
+    });
     execSync("git push", { stdio: "inherit" });
     console.log("Pushed.");
   }
@@ -244,7 +366,11 @@ if (WEBHOOK) {
   ].join("\n");
 
   const payload = msg.length > 2000 ? msg.slice(0, 1997) + "…" : msg;
-  const res = await fetch(WEBHOOK, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: payload }) });
+  const res = await fetch(WEBHOOK, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content: payload }),
+  });
   if (!res.ok) console.error(`Discord: ${res.status} ${await res.text()}`);
   else console.log("Discord sent.");
 }
