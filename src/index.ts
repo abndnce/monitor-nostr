@@ -53,7 +53,7 @@ async function check(url: string) {
 // display width: emoji squares count as 2, ascii as 1
 function dw(s: string) {
   let w = 0;
-  for (const ch of s) w += (ch === "🟩" || ch === "⬜" || ch === "⬛") ? 2 : 1;
+  for (const ch of s) w += (ch === GREEN || ch === WHITE || ch === BLACK || ch === RED) ? 2 : 1;
   return w;
 }
 function dwPad(s: string, target: number) {
@@ -64,6 +64,7 @@ function dwPad(s: string, target: number) {
 const GREEN = "🟩";
 const WHITE = "⬜";
 const BLACK = "⬛";
+const RED   = "🟥";
 
 // ─── Column-symbol assignment ────────────────────────────────────────────
 // Try first-letter uppercase; fall back to a number, then to any remaining
@@ -123,7 +124,7 @@ function grid(relays: { short: string; filters: Map<string, string>; score: numb
   const colH = (i: number) => dwPad(syms[i], 3);
   const colD = (c: number, r: number) => {
     const g = first.get(c) === r && rows[r][c] === "unblocked";
-    const sq = g && rows[r][c] === "unblocked" ? GREEN : rows[r][c] === "unblocked" ? WHITE : BLACK;
+    const sq = g && rows[r][c] === "unblocked" ? GREEN : rows[r][c] === "unblocked" ? WHITE : rows[r][c] === "error" ? RED : BLACK;
     return sq + " ";
   };
   const pad = (n: string, cells: string[]) => dwPad(n, nameW) + "  " + cells.join("");
@@ -223,7 +224,7 @@ if (WEBHOOK) {
     "```",
     g,
     "```",
-    `${GREEN} first unblocked   ${WHITE} unblocked   ${BLACK} blocked/error`,
+    `${GREEN} first unblocked   ${WHITE} unblocked   ${RED} error   ${BLACK} blocked`,
     "",
     legend,
   ].join("\n");
