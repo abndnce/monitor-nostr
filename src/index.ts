@@ -102,7 +102,7 @@ function assignSymbols(names: string[]): Map<string, string> {
   return sym;
 }
 
-function grid(relays: { short: string; filters: Map<string, string>; score: number }[]) {
+function grid(relays: { url: string; short: string; filters: Map<string, string>; score: number }[]) {
   const order = new Map<string, number>();
   for (const r of relays) for (const k of r.filters.keys()) if (!order.has(k)) order.set(k, order.size);
   const names = [...order.keys()].sort();
@@ -112,10 +112,11 @@ function grid(relays: { short: string; filters: Map<string, string>; score: numb
 
   const rows = relays.map(r => names.map(n => r.filters.get(n) ?? "blocked"));
 
+  // First-unblocked: skip test entries so they don't steal green squares
   const first = new Map<number, number>();
   for (let c = 0; c < names.length; c++)
     for (let r = 0; r < relays.length; r++)
-      if (rows[r][c] === "unblocked") { first.set(c, r); break; }
+      if (!isTest(relays[r]) && rows[r][c] === "unblocked") { first.set(c, r); break; }
 
   const nameW = Math.max(...relays.map(r => dw(r.short)), dw("Relay"));
 
@@ -136,16 +137,28 @@ function grid(relays: { short: string; filters: Map<string, string>; score: numb
   return { lines: lines.join("\n"), syms: names.map((n, i) => `${syms[i]}: ${n}`) };
 }
 
+// ─── Test/special-cases ─────────────────────────────────────────────────
+
+const TEST_DOMAINS = ["www.google.com"];
+
+function isTest(relay: { url?: string }) {
+  return relay.url ? TEST_DOMAINS.includes(relay.url) : false;
+}
+
 // ─── Ranking: first-unblocked coverage, then absolute score ──────────────
 
 function rankTop(relays: { url: string; short: string; filters: Map<string, string>; score: number }[], n: number) {
-  // All unique filter names across all relays
+  // Separate test entries (they shouldn't influence ranking)
+  const testEntries = relays.filter(isTest);
+  const realEntries = relays.filter(r => !isTest(r));
+
+  // All unique filter names across all real relays
   const allFilters = new Set<string>();
-  for (const r of relays) for (const k of r.filters.keys()) allFilters.add(k);
+  for (const r of realEntries) for (const k of r.filters.keys()) allFilters.add(k);
   const filterNames = [...allFilters].sort();
 
   const sorted: typeof relays = [];
-  const remaining = [...relays];
+  const remaining = [...realEntries];
   const claimed = new Set<string>(); // filters that already have a first unblocked
 
   while (sorted.length < n && remaining.length > 0) {
@@ -175,11 +188,12 @@ function rankTop(relays: { url: string; short: string; filters: Map<string, stri
     sorted.push(picked);
   }
 
-  // Fill remaining slots by absolute score
+  // Fill remaining slots by absolute score (from real entries)
   remaining.sort((a, b) => b.score - a.score);
   while (sorted.length < n && remaining.length > 0) sorted.push(remaining.shift()!);
 
-  return sorted;
+  // Prepend test entries so they appear first (but don't influence ranking)
+  return [...testEntries, ...sorted];
 }
 
 // ─── Main ────────────────────────────────────────────────────────────────────
