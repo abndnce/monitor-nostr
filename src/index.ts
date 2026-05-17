@@ -52,6 +52,7 @@ async function check(url: string) {
   const filters = new Map<string, string>();
   let score = 0;
   for (const [fname, fr] of Object.entries(data.results)) {
+    if (fname === "midnightai") continue;
     const s = statusFrom(
       fname,
       fr as any,
@@ -112,7 +113,6 @@ const MARKET_SHARE: Record<string, number> = {
   qustodio: 1_000_000 / TOTAL_US_K12,
   cleanbrowsing: 1_000_000 / TOTAL_US_K12,
   deldao: 500_000 / TOTAL_US_K12,
-  midnightai: 200_000 / TOTAL_US_K12,
   barracuda: 100_000 / TOTAL_US_K12,
 };
 
