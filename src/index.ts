@@ -238,7 +238,18 @@ function isTest(relay: { url?: string }) {
   return relay.url ? TEST_DOMAINS.includes(relay.url) : false;
 }
 
-// ─── Ranking: first-unblocked coverage, then absolute score ──────────────
+// ─── Ranking: market-share-weighted coverage, then weighted score ──────
+
+function weightedScore(
+  r: { filters: Map<string, string> },
+  filterNames: string[],
+): number {
+  let w = 0;
+  for (const f of filterNames) {
+    if (r.filters.get(f) === "unblocked") w += shareWeight(f);
+  }
+  return w;
+}
 
 function rankTop(
   relays: {
@@ -272,14 +283,19 @@ function rankTop(
 
     for (let i = 0; i < remaining.length; i++) {
       const r = remaining[i];
-      let newCount = 0;
+      let newWeight = 0;
       for (const f of filterNames) {
-        if (!claimed.has(f) && r.filters.get(f) === "unblocked") newCount++;
+        if (!claimed.has(f) && r.filters.get(f) === "unblocked")
+          newWeight += shareWeight(f);
       }
-      if (newCount > bestNew || (newCount === bestNew && r.score > bestScore)) {
-        bestNew = newCount;
+      const totalWeight = weightedScore(r, filterNames);
+      if (
+        newWeight > bestNew ||
+        (newWeight === bestNew && totalWeight > bestScore)
+      ) {
+        bestNew = newWeight;
         bestIdx = i;
-        bestScore = r.score;
+        bestScore = totalWeight;
       }
     }
 
@@ -295,8 +311,8 @@ function rankTop(
     sorted.push(picked);
   }
 
-  // Fill remaining slots by absolute score (from real entries)
-  remaining.sort((a, b) => b.score - a.score);
+  // Fill remaining slots by weighted score (from real entries)
+  remaining.sort((a, b) => weightedScore(b, filterNames) - weightedScore(a, filterNames));
   while (sorted.length < n && remaining.length > 0)
     sorted.push(remaining.shift()!);
 
